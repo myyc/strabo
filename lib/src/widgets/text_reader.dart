@@ -4,6 +4,7 @@ import '../models/text_snippet.dart';
 import '../models/language.dart';
 import '../services/text_service.dart';
 import '../services/dictionary_service.dart';
+import '../utils/responsive.dart';
 import 'text_metadata_edit_dialog.dart';
 import 'dictionary_popup.dart';
 
@@ -27,43 +28,47 @@ class _TextReaderState extends State<TextReader> {
     final language = Language.fromType(widget.snippet.language);
     final textService = Provider.of<TextService>(context);
     
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildHeader(context, language),
-          const SizedBox(height: 24),
-          Expanded(
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              child: SizedBox(
-                width: double.infinity,
-                child: _buildTextContent(context, language, textService),
-              ),
-            ),
+    return ResponsiveBuilder(
+      builder: (context, info) {
+        return Container(
+          padding: info.cardPadding,
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.circular(12),
           ),
-        ],
-      ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildHeader(context, language, info),
+              SizedBox(height: info.spacing),
+              Expanded(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: _buildTextContent(context, language, textService, info),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildHeader(BuildContext context, Language language) {
+  Widget _buildHeader(BuildContext context, Language language, ResponsiveInfo info) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           widget.snippet.title,
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+          style: Theme.of(context).textTheme.responsiveHeadline(info.screenWidth).copyWith(
             fontFamily: language.fontFamily,
             fontWeight: FontWeight.bold,
           ),
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: info.spacing * 0.5),
         Row(
           children: [
             Text(
@@ -84,19 +89,19 @@ class _TextReaderState extends State<TextReader> {
     );
   }
 
-  Widget _buildTextContent(BuildContext context, Language language, TextService textService) {
+  Widget _buildTextContent(BuildContext context, Language language, TextService textService, ResponsiveInfo info) {
     final items = _splitIntoWords(widget.snippet.content);
     
     return Directionality(
       textDirection: language.isRtl ? TextDirection.rtl : TextDirection.ltr,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: _buildTextLines(context, items, language, textService),
+        children: _buildTextLines(context, items, language, textService, info),
       ),
     );
   }
   
-  List<Widget> _buildTextLines(BuildContext context, List<dynamic> items, Language language, TextService textService) {
+  List<Widget> _buildTextLines(BuildContext context, List<dynamic> items, Language language, TextService textService, ResponsiveInfo info) {
     final lines = <Widget>[];
     final currentLine = <Widget>[];
     
@@ -115,7 +120,7 @@ class _TextReaderState extends State<TextReader> {
           currentLine.clear();
         }
         // Add some spacing between lines
-        lines.add(const SizedBox(height: 4));
+        lines.add(SizedBox(height: info.spacing * 0.25));
       } else {
         // Add token to current line (word or punctuation)
         currentLine.add(
@@ -124,6 +129,7 @@ class _TextReaderState extends State<TextReader> {
             item as String,
             language,
             textService,
+            info,
           ),
         );
       }
@@ -149,6 +155,7 @@ class _TextReaderState extends State<TextReader> {
     String token,
     Language language,
     TextService textService,
+    ResponsiveInfo info,
   ) {
     // Check if this is a verse marker
     if (token.startsWith('VERSE_MARKER:')) {
@@ -166,12 +173,15 @@ class _TextReaderState extends State<TextReader> {
         ),
         child: Text(
           verseNumber,
-          style: TextStyle(
-            fontFamily: language.fontFamily,
-            fontSize: 14,
-            height: 1.2,
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-            fontWeight: FontWeight.w500,
+          style: Theme.of(context).textTheme.responsiveStyle(
+            TextStyle(
+              fontFamily: language.fontFamily,
+              fontSize: 14,
+              height: 1.2,
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              fontWeight: FontWeight.w500,
+            ),
+            info.screenWidth,
           ),
         ),
       );
@@ -184,9 +194,8 @@ class _TextReaderState extends State<TextReader> {
       // Render punctuation/whitespace without interaction
       return Text(
         token,
-        style: TextStyle(
+        style: Theme.of(context).textTheme.responsiveBodyText(info.screenWidth).copyWith(
           fontFamily: language.fontFamily,
-          fontSize: 18,
           height: 1.6,
           color: Theme.of(context).colorScheme.onSurface,
         ),
@@ -209,9 +218,8 @@ class _TextReaderState extends State<TextReader> {
         ),
         child: Text(
           token,
-          style: TextStyle(
+          style: Theme.of(context).textTheme.responsiveBodyText(info.screenWidth).copyWith(
             fontFamily: language.fontFamily,
-            fontSize: 18,
             height: 1.6,
             color: _getTextColor(context, wordStatus, isSelected),
           ),

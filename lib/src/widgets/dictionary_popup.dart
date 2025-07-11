@@ -6,6 +6,7 @@ import '../models/text_snippet.dart';
 import '../services/dictionary_service.dart';
 import '../services/dictionary_provider.dart';
 import '../services/text_service.dart';
+import '../utils/responsive.dart';
 
 class DictionaryPopup extends StatefulWidget {
   final String word;
@@ -62,28 +63,50 @@ class _DictionaryPopupState extends State<DictionaryPopup> {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      child: Container(
-        width: MediaQuery.of(context).size.width * 0.6,
-        height: MediaQuery.of(context).size.height * 0.7,
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildHeader(),
-            const SizedBox(height: 16),
-            Expanded(
-              child: _buildContent(),
+    return ResponsiveBuilder(
+      builder: (context, info) {
+        // Responsive sizing based on screen size
+        double dialogWidth;
+        double dialogHeight;
+        
+        if (info.isSmall) {
+          // Mobile: Use most of the screen
+          dialogWidth = info.screenWidth * 0.95;
+          dialogHeight = info.screenHeight * 0.9;
+        } else if (info.isMedium) {
+          // Tablet: Larger dialog
+          dialogWidth = info.screenWidth * 0.8;
+          dialogHeight = info.screenHeight * 0.8;
+        } else {
+          // Desktop: Current size
+          dialogWidth = info.screenWidth * 0.6;
+          dialogHeight = info.screenHeight * 0.7;
+        }
+        
+        return Dialog(
+          child: Container(
+            width: dialogWidth,
+            height: dialogHeight,
+            padding: info.cardPadding,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHeader(info),
+                SizedBox(height: info.spacing),
+                Expanded(
+                  child: _buildContent(info),
+                ),
+                SizedBox(height: info.spacing),
+                _buildFooter(info),
+              ],
             ),
-            const SizedBox(height: 16),
-            _buildFooter(),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(ResponsiveInfo info) {
     return Row(
       children: [
         Icon(
@@ -98,13 +121,16 @@ class _DictionaryPopupState extends State<DictionaryPopup> {
             children: [
               Text(
                 widget.word,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                style: Theme.of(context).textTheme.responsiveHeadline(info.screenWidth).copyWith(
                   fontWeight: FontWeight.bold,
                 ),
               ),
               Text(
                 'Dictionary Lookup',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                style: Theme.of(context).textTheme.responsiveStyle(
+                  Theme.of(context).textTheme.bodyMedium ?? const TextStyle(),
+                  info.screenWidth,
+                ).copyWith(
                   color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                 ),
               ),
@@ -129,7 +155,7 @@ class _DictionaryPopupState extends State<DictionaryPopup> {
     );
   }
 
-  Widget _buildContent() {
+  Widget _buildContent(ResponsiveInfo info) {
     if (_isLoading) {
       return const Center(
         child: Column(
@@ -436,7 +462,7 @@ class _DictionaryPopupState extends State<DictionaryPopup> {
     );
   }
 
-  Widget _buildFooter() {
+  Widget _buildFooter(ResponsiveInfo info) {
     final currentStatus = widget.textService.getWordStatus(widget.snippetId, widget.word);
     
     return Column(

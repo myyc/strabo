@@ -118,47 +118,48 @@ class TextService extends ChangeNotifier {
     await addSnippet(newSnippet);
   }
 
-  // Sample data for demonstration
-  Future<void> loadSampleData() async {
-    final sampleGreek1 = TextSnippet(
-      id: '1',
-      title: 'Iliad - Book 1',
-      content: 'Μῆνιν ἄειδε θεὰ Πηληϊάδεω Ἀχιλῆος οὐλομένην, ἣ μυρί᾽ Ἀχαιοῖς ἄλγε᾽ ἔθηκε, πολλὰς δ᾽ ἰφθίμους ψυχὰς Ἅϊδι προΐαψεν ἡρώων, αὐτοὺς δὲ ἑλώρια τεῦχε κύνεσσιν οἰωνοῖσί τε πᾶσι, Διὸς δ᾽ ἐτελείετο βουλή, ἐξ οὗ δὴ τὰ πρῶτα διαστήτην ἐρίσαντε Ἀτρεΐδης τε ἄναξ ἀνδρῶν καὶ δῖος Ἀχιλλεύς.',
-      author: 'Homer',
-      language: LanguageType.greek,
-      createdAt: DateTime.now(),
-    );
+  // Remove duplicate snippets based on title and author
+  Future<void> removeDuplicates() async {
+    final Map<String, TextSnippet> uniqueSnippets = {};
+    
+    for (final snippet in _snippets) {
+      final key = '${snippet.title}|${snippet.author}';
+      if (!uniqueSnippets.containsKey(key)) {
+        uniqueSnippets[key] = snippet;
+      }
+    }
+    
+    _snippets.clear();
+    _snippets.addAll(uniqueSnippets.values);
+    await _saveSnippets();
+    notifyListeners();
+  }
 
-    final sampleGreek2 = TextSnippet(
-      id: '2',
-      title: 'Odyssey - Book 1',
-      content: 'Ἄνδρα μοι ἔννεπε, Μοῦσα, πολύτροπον, ὃς μάλα πολλὰ πλάγχθη, ἐπεὶ Τροίης ἱερὸν πτολίεθρον ἔπερσε· πολλῶν δ᾽ ἀνθρώπων ἴδεν ἄστεα καὶ νόον ἔγνω, πολλὰ δ᾽ ὅ γ᾽ ἐν πόντῳ πάθεν ἄλγεα ὃν κατὰ θυμόν, ἀρνύμενος ἥν τε ψυχὴν καὶ νόστον ἑταίρων.',
-      author: 'Homer',
-      language: LanguageType.greek,
-      createdAt: DateTime.now(),
+  // Remove placeholder sample data (preserves user-added content)
+  Future<void> removePlaceholderData() async {
+    final placeholderTitles = {
+      'Iliad - Book 1',
+      'Odyssey - Book 1', 
+      'Apology - Opening',
+      'Quran - Al-Fatiha',
+      'Quran',
+    };
+    
+    final placeholderIds = {
+      'sample_greek_1',
+      'sample_greek_2', 
+      'sample_greek_3',
+      'sample_arabic_1',
+      'sample_arabic_2',
+      '1', '2', '3', '4', // Old numeric IDs
+    };
+    
+    _snippets.removeWhere((snippet) => 
+        placeholderTitles.contains(snippet.title) ||
+        placeholderIds.contains(snippet.id)
     );
-
-    final sampleGreek3 = TextSnippet(
-      id: '3',
-      title: 'Apology - Opening',
-      content: 'Ὅτι μὲν ὑμεῖς, ὦ ἄνδρες Ἀθηναῖοι, πεπόνθατε ὑπὸ τῶν ἐμῶν κατηγόρων, οὐκ οἶδα· ἐγὼ δ᾽ οὖν καὶ αὐτὸς ὑπ᾽ αὐτῶν ὀλίγου ἐμαυτοῦ ἐπελαθόμην, οὕτω πιθανῶς ἔλεγον. Καίτοι ἀληθές γε ὡς ἔπος εἰπεῖν οὐδὲν εἰρήκασιν.',
-      author: 'Plato',
-      language: LanguageType.greek,
-      createdAt: DateTime.now(),
-    );
-
-    final sampleArabic = TextSnippet(
-      id: '4',
-      title: 'Quran - Al-Fatiha',
-      content: 'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ الرَّحْمَٰنِ الرَّحِيمِ مَالِكِ يَوْمِ الدِّينِ إِيَّاكَ نَعْبُدُ وَإِيَّاكَ نَسْتَعِينُ اهْدِنَا الصِّرَاطَ الْمُسْتَقِيمَ',
-      author: 'Quran',
-      language: LanguageType.arabic,
-      createdAt: DateTime.now(),
-    );
-
-    await addSnippet(sampleGreek1);
-    await addSnippet(sampleGreek2);
-    await addSnippet(sampleGreek3);
-    await addSnippet(sampleArabic);
+    
+    await _saveSnippets();
+    notifyListeners();
   }
 }
